@@ -1,30 +1,18 @@
-import csv
-from typing import List
+# check dictionary
+import random
 
-cols = {
-    "motionRotationRateX(rad/s)": "rotation_x",
-    "motionRotationRateY(rad/s)": "rotation_y",
-    "motionRotationRateZ(rad/s)": "rotation_z",
-    "motionUserAccelerationX(G)": "acceleration_x",
-    "motionUserAccelerationY(G)": "acceleration_y",
-    "motionUserAccelerationZ(G)": "acceleration_z",
-    "sessionId": "session_id",
-    "activity": "activity"
-}
+c = dict()
+d = dict()
+final = dict()
 
+c[0] = 'root'
 
-for k in [list(cols.keys())]:
-    print(k)
-# [list(cols.keys())].rename(cols)
+for k in range(100):
+    c[k+1] = str(k) + 'ziggy'
 
-with open('test.csv') as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in csv_reader:
-        if line_count == 0:
-            print(f'Column names are {", ".join(row)}')
-            line_count += 1
-        else:
-            print(f'\t{row[0]} has {row[1]} {row[2]} {row[2]} {row[2]}.')
-            line_count += 1
-    print(f'Processed {line_count} lines.')
+for z1 in c:
+    n = random.random() * 100
+    if n > 50:
+        d[n] = str(n) + 'bopp'
+
+for

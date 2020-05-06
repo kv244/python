@@ -1,3 +1,5 @@
+# language
+
 def style():
     def fn_gen() -> object:
         # function generator; -> is a type hint
