@@ -1,62 +1,150 @@
 from bs4 import *
 import urllib.request
 from urllib.parse import urljoin
+import urllib.error
 import re
 
 
-class Crawler:
+class Scanner:
 
-    _scan_bucket = dict()
+    eliminate = ['#', '=', '?', '(', '@', 'facebook']
 
-    def __init__(self, dbname=None, dbg=False):
-        pass
+    def __init__(self, origin: str):
+        self.origin = origin
+        self.output = []
 
-    # self.con = sqlite.connect(path+dbname)
-    # self.dbname = path + dbname
-    # self.debug = dbg
-    # print("Using database: ", self.dbname)
+    def scan(self, crawler, max_links=50):
+        """scans the origin page and populates the links in the output list"""
+        try:
+            html_page = urllib.request.urlopen(self.origin)
+        except:
+            print("Other error in scanner " + self.origin)
+            return
 
-    def __del__(self):
-        pass
+        # print("\tIn scanner - scanning " + self.origin + " for links.\n")
 
-    # self.con.close()
-
-    def add_to_scan_bucket(self, url, title=None):
-        print("Adding ", url)
-        if self.is_in_scan_bucket(url) is False:
-            self._scan_bucket.add(hash(url), (url, title))
-        else:
-            print(url, "already in")
-
-    def is_in_scan_bucket(self, url):
-        return hash(url) in self._scan_bucket.keys()
-
-    def crawl(self, root_page="http://www.comisarul.ro", depth=2):
-
-        level = 0
-        self.add_to_scan_bucket(root_page, '')
-
-        while level < depth:
-
-            try:
-                html_page = urllib.request.urlopen(root_page)
-            except:
-                print("Can't open page")
-
+        limit = 0
+        try:
             page_in = BeautifulSoup(html_page.read(), 'html.parser')
             links_in = page_in('a')
+            print("\tScanner found: " + str(len(links_in)) + " links.")
             for link in links_in:
-                # print(link)
                 if 'href' in dict(link.attrs):
-                    url = urljoin(root_page, link['href'])
-
-                if 'title' in dict(link.attrs):
-                    title = link['title']
+                    url = urljoin(self.origin, link['href'])
                 else:
-                    title = ''
+                    continue
 
-                self.add_to_scan_bucket(url, title)
+            # print("\t...", url)
+            # skip = map(url.find, Scanner.eliminate)
+            # print(skip)
+
+                if url.find("#") != -1:
+                    continue
+                if url.find("=") != -1:
+                    continue
+                if url.find("?") != -1:
+                    continue
+                if url.find("(") != -1:
+                    continue
+                if url.find("@") != -1:
+                    continue
+                if url.find("facebook") != -1:
+                    continue
+                if url.find("twitter") != -1:
+                    continue
+                if url.find("jpg") != -1:
+                    continue
+
+                if hash(url) in Crawler.scanned.keys():
+                    # print("\t\tAlready scanned")
+                    continue
+                else:
+                    Crawler.scanned[hash(url)] = url
+                    print("\t\tAdding to scanned list " + str(url) + " Sizeof scanned can: " + str(len(Crawler.scanned)))
+                    limit = limit + 1
+                    self.output.append(url)
+
+                    if limit > max_links:
+                        break
+
+        except:
+            print("Error reading.... continue")
+
+        #    if 'title' in dict(link.attrs):
+        #        title = link['title']
+        #    else:
+        #        title = ''
+
+    def __get__(self, instance, owner):
+        return self.output
 
 
-c=Crawler()
+class Crawler:
+    """Drives the scanner"""
+
+    scanned = {}
+
+    def __init__(self, origin: str, generations: int):
+        """origin = starting URL
+        generations = how many jumps from origin"""
+
+        if generations <= 1:
+            generations = 1
+        self._current_bucket = []  # scanned by the current generation scan
+        self._swap_bucket = []
+        self._current_bucket.append(origin)
+        self._origin = origin
+        self._generations = generations
+        self.response = set()
+        Crawler.scanned[hash(origin)] = origin
+
+    def __get__(self, instance, owner):
+        return self._origin
+
+    def _build_response(self, scanned_from: str, generation: int):
+        for item in self._swap_bucket:
+            response_item = ("From: " + scanned_from, "Linked: " + item, "In: " + str(generation))
+            self.response.add(response_item)
+
+    def _scan(self, generation: int):
+        itm = 0
+        print("Bucket size ", len(self._current_bucket))
+
+        for item in self._current_bucket:
+            print("\n\t" + str(generation) + " reading item " + str(itm) + " from bucket: " + item)
+
+            itm += 1
+            scanner = Scanner(item)
+            scanner.scan(self)
+            self._swap_bucket.extend(scanner.output)
+            self._build_response(item, generation)
+
+    def crawl(self):
+
+        # for items in current bucket while gen < max gen
+        # if item not in scanned already, scan item --> swap bucket list; add item to scanned
+        # for items2 in swap bucket
+        # add scan item, items2 to response
+        # inc gen
+        # current bucket = scan bucket
+        # scan bucket = empty
+
+        g = 0
+        while g <= self._generations:
+            print("\nGeneration ", g)
+            self._scan(g)
+
+            self._current_bucket = self._swap_bucket
+            self._swap_bucket = []
+            g += 1
+
+    def check(self):
+        for datum in self.response:
+            for data in datum:
+                print("\t", data)
+            print("\n")
+
+
+c = Crawler("https://www.catavencii.ro/", 2)
 c.crawl()
+c.check()
